@@ -1,0 +1,9 @@
+[project]
+name = "video-frame-extractor"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "opencv-python>=4.13.0.92",
+    "pillow>=12.2.0",
+]

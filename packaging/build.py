@@ -130,26 +130,43 @@ def compile_sources() -> None:
         raise SystemExit("Python compile check failed.")
 
 
-def generate_icon() -> None:
-    from PIL import Image, ImageDraw, ImageFont
-
+def generate_icon(python: Path) -> None:
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     png_path = ASSETS_DIR / "icon.png"
     ico_path = ASSETS_DIR / "icon.ico"
-    image = Image.new("RGBA", (256, 256), SETTINGS["icon_bg"])
-    draw = ImageDraw.Draw(image)
-    try:
-        font = ImageFont.truetype("arialbd.ttf", 96)
-    except OSError:
-        font = ImageFont.load_default()
-    text = SETTINGS["icon_text"]
-    box = draw.textbbox((0, 0), text, font=font)
-    x = (256 - (box[2] - box[0])) / 2
-    y = (256 - (box[3] - box[1])) / 2 - 6
-    draw.rounded_rectangle((18, 18, 238, 238), radius=44, outline=SETTINGS["icon_fg"], width=8)
-    draw.text((x, y), text, fill=SETTINGS["icon_fg"], font=font)
-    image.save(png_path)
-    image.save(ico_path, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    script = """
+import sys
+from PIL import Image, ImageDraw, ImageFont
+
+bg, fg, text, png_path, ico_path = sys.argv[1:]
+image = Image.new("RGBA", (256, 256), bg)
+draw = ImageDraw.Draw(image)
+try:
+    font = ImageFont.truetype("arialbd.ttf", 96)
+except OSError:
+    font = ImageFont.load_default()
+box = draw.textbbox((0, 0), text, font=font)
+x = (256 - (box[2] - box[0])) / 2
+y = (256 - (box[3] - box[1])) / 2 - 6
+draw.rounded_rectangle((18, 18, 238, 238), radius=44, outline=fg, width=8)
+draw.text((x, y), text, fill=fg, font=font)
+image.save(png_path)
+image.save(ico_path, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+"""
+    subprocess.run(
+        [
+            str(python),
+            "-c",
+            script,
+            SETTINGS["icon_bg"],
+            SETTINGS["icon_fg"],
+            SETTINGS["icon_text"],
+            str(png_path),
+            str(ico_path),
+        ],
+        cwd=ROOT,
+        check=True,
+    )
 
 
 def build_exe(python: Path) -> None:
@@ -200,7 +217,7 @@ def main() -> None:
     compile_sources()
     python = ensure_venv()
     install_dependencies(python)
-    generate_icon()
+    generate_icon(python)
     build_exe(python)
     zip_path = package_zip()
     print(f"Built {DIST_DIR / PROJECT / (PROJECT + '.exe')}")
